@@ -1,7 +1,8 @@
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Unlock, Settings, Brain, UserSearch, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Search, Unlock, Settings, Brain, UserSearch, LogOut, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -11,23 +12,25 @@ const mainNavItems = [
 ];
 
 const bottomNavItems = [
-  { icon: Unlock, label: 'Unlocked Leads', path: '/leads' },
-];
-
-const settingsItems = [
+  { icon: Unlock, label: 'My Contacts', path: '/leads' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
+  const userRole = user?.user_metadata?.user_role || 'Member';
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       navigate('/login');
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error('Error signing out:', error);
     }
   };
 
@@ -35,14 +38,14 @@ export default function Sidebar() {
     <Link
       to={item.path}
       className={`
-        flex items-center px-4 py-3 rounded-lg mb-1 transition-colors text-sm
+        flex items-center px-4 py-3 rounded-lg mb-1 transition-colors
         ${location.pathname === item.path
           ? 'bg-blue-50 text-blue-700'
           : 'text-gray-700 hover:bg-gray-50'
         }
       `}
     >
-      <item.icon className="w-4 h-4 mr-3" />
+      <item.icon className="w-5 h-5 mr-3" />
       <span className="font-medium">{item.label}</span>
     </Link>
   );
@@ -55,38 +58,51 @@ export default function Sidebar() {
           alt="SpeakerDrive" 
           className="h-6 w-auto mb-6"
         />
+        
+        {/* User Profile Section */}
+        <div className="flex items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
+          <div className="flex-shrink-0">
+            {user?.user_metadata?.avatar_url ? (
+              <img
+                src={user.user_metadata.avatar_url}
+                alt={displayName}
+                className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center">
+                <User className="w-5 h-5 text-blue-600" />
+              </div>
+            )}
+          </div>
+          <div className="ml-3 overflow-hidden">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {displayName}
+            </p>
+            <p className="text-xs text-gray-600 truncate">
+              {userRole}
+            </p>
+          </div>
+        </div>
       </div>
       
-      {/* Main Navigation */}
-      <nav className="px-4">
+      <nav className="flex-1 px-4">
         {mainNavItems.map((item) => (
           <NavLink key={item.path} item={item} />
         ))}
       </nav>
 
-      {/* Flex spacer */}
-      <div className="flex-1" />
-      
-      {/* Unlocked Leads */}
-      <div className="px-4">
+      <div className="px-4 mb-4">
         {bottomNavItems.map((item) => (
           <NavLink key={item.path} item={item} />
         ))}
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-gray-200 my-2" />
-
-      {/* Settings and Logout */}
-      <div className="px-4 pb-6">
-        {settingsItems.map((item) => (
-          <NavLink key={item.path} item={item} />
-        ))}
-        <button
+      <div className="p-4 border-t border-gray-200">
+        <button 
           onClick={handleLogout}
-          className="flex items-center w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+          className="w-full flex items-center px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
         >
-          <LogOut className="w-4 h-4 mr-3" />
+          <LogOut className="w-5 h-5 mr-3" />
           <span className="font-medium">Logout</span>
         </button>
       </div>
