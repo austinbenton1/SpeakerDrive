@@ -17,36 +17,40 @@ export default function Signup() {
     setError,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    defaultValues: {
-      email: 'bleuewulf+test01@gmail.com',
-      password: 'Password12345!'
-    }
   });
 
   const onSubmit = async (data: SignupFormData) => {
     try {
+      // Extract name from email (everything before @)
       const displayName = data.email.split('@')[0];
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        display_name: displayName
+        options: {
+          data: {
+            display_name: displayName,
+            user_type: 'Client',
+            user_role: 'Owner',
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
       });
 
-      if (signUpError) {
-        setError('root', { message: signUpError.message });
+      if (authError) {
+        setError('root', { message: authError.message });
         return;
       }
 
-      if (!signUpData.session || !signUpData.user) {
+      if (!authData.session || !authData.user) {
         setError('root', { 
           message: 'Please check your email for verification link before continuing.' 
         });
         return;
       }
 
-      // Redirect to onboarding
-      navigate('/onboarding');
+      // Session is already established from signUp, redirect to dashboard
+      navigate('/dashboard');
     } catch (error) {
       console.error('Signup error:', error);
       setError('root', { 
