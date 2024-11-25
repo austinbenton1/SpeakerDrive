@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
@@ -10,14 +9,13 @@ import FindLeads from './pages/FindLeads';
 import UserManagement from './pages/UserManagement';
 import Leads from './pages/Leads';
 import LeadDetails from './pages/LeadDetails';
+import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import SmartTools from './pages/SmartTools';
 import ContactFinder from './pages/ContactFinder';
-import Onboarding from './pages/Onboarding';
-import EmailConnection from './pages/EmailConnection';
 
 function App() {
-  const { loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (
@@ -27,42 +25,32 @@ function App() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-
-        {/* Protected Onboarding Routes */}
-        <Route path="/onboarding" element={
-          <ProtectedRoute>
-            <Onboarding />
-          </ProtectedRoute>
-        } />
-        <Route path="/email-setup" element={
-          <ProtectedRoute>
-            <EmailConnection />
-          </ProtectedRoute>
-        } />
-
-        {/* Protected App Routes */}
-        <Route element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
+        <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/find-leads" element={<FindLeads />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/leads/:id" element={<LeadDetails />} />
           <Route path="/smart-tools" element={<SmartTools />} />
           <Route path="/contact-finder" element={<ContactFinder />} />
-          <Route path="/settings" element={<UserManagement />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/user" element={<UserManagement />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
-
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>
   );
