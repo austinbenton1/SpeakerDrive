@@ -10,16 +10,16 @@ DROP POLICY IF EXISTS "Allow profile creation during signup" ON profiles;
 -- Allow users to view their own profile
 CREATE POLICY "Users can view own profile"
     ON profiles FOR SELECT
-    USING (auth.uid() = auth_id);
+    USING (auth.uid()::uuid = user_id);
 
 -- Allow users to update their own profile
 CREATE POLICY "Users can update own profile"
     ON profiles FOR UPDATE
-    USING (auth.uid() = auth_id)
+    USING (auth.uid()::uuid = user_id)
     WITH CHECK (
-        auth.uid() = auth_id
+        auth.uid()::uuid = user_id
         -- Prevent changing critical fields
-        AND auth_id = OLD.auth_id
+        AND user_id = OLD.user_id
         AND email = OLD.email
         AND user_type = OLD.user_type
     );
@@ -29,7 +29,7 @@ CREATE POLICY "Allow profile creation during signup"
     ON profiles FOR INSERT
     WITH CHECK (
         -- New users can only insert their own profile
-        auth.uid() = auth_id
+        auth.uid()::uuid = user_id
         -- Ensure required fields
         AND email IS NOT NULL
         AND password IS NOT NULL
@@ -45,7 +45,7 @@ CREATE POLICY "Admins can view all profiles"
     USING (
         EXISTS (
             SELECT 1 FROM profiles
-            WHERE profiles.auth_id = auth.uid()
+            WHERE profiles.user_id = auth.uid()::uuid
             AND profiles.user_type = 'Admin'
         )
     );
@@ -56,7 +56,7 @@ CREATE POLICY "Admins can create profiles"
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM profiles
-            WHERE profiles.auth_id = auth.uid()
+            WHERE profiles.user_id = auth.uid()::uuid
             AND profiles.user_type = 'Admin'
         )
     );
@@ -67,14 +67,14 @@ CREATE POLICY "Admins can update profiles"
     USING (
         EXISTS (
             SELECT 1 FROM profiles
-            WHERE profiles.auth_id = auth.uid()
+            WHERE profiles.user_id = auth.uid()::uuid
             AND profiles.user_type = 'Admin'
         )
     )
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM profiles
-            WHERE profiles.auth_id = auth.uid()
+            WHERE profiles.user_id = auth.uid()::uuid
             AND profiles.user_type = 'Admin'
         )
     );
@@ -85,12 +85,12 @@ CREATE POLICY "Admins can delete profiles"
     USING (
         EXISTS (
             SELECT 1 FROM profiles
-            WHERE profiles.auth_id = auth.uid()
+            WHERE profiles.user_id = auth.uid()::uuid
             AND profiles.user_type = 'Admin'
         )
     );
 
 -- Create index for better performance
-CREATE INDEX IF NOT EXISTS idx_profiles_auth_id ON profiles(auth_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_user_type ON profiles(user_type);
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
