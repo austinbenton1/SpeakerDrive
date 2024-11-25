@@ -1,8 +1,8 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AuthLayout from '../components/AuthLayout';
 import Input from '../components/Input';
@@ -10,50 +10,37 @@ import { loginSchema, type LoginFormData } from '../types/auth';
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
+    setError,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'bleuewulf+test01@gmail.com',
+      email: 'bleuewulf@gmail.com',
       password: 'Password12345!'
     }
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      setError(null);
-      setIsLoading(true);
-
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
-      if (signInError) {
-        setError(signInError.message);
+      if (error) {
+        setError('root', { message: error.message });
         return;
       }
 
-      if (!signInData.session) {
-        setError('Failed to sign in. Please try again.');
-        return;
-      }
-
-      // Successful login - redirect to intended destination
-      navigate(from, { replace: true });
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('root', { 
+        message: 'An unexpected error occurred. Please try again.' 
+      });
     }
   };
 
@@ -63,17 +50,9 @@ export default function Login() {
       subtitle="Sign in to your SpeakerDrive account"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-2" />
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-red-800">
-                  Authentication Error
-                </h3>
-                <p className="mt-1 text-sm text-red-700">{error}</p>
-              </div>
-            </div>
+        {errors.root && (
+          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+            {errors.root.message}
           </div>
         )}
 
@@ -86,7 +65,6 @@ export default function Login() {
             error={errors.email?.message}
             icon={Mail}
             placeholder="you@example.com"
-            disabled={isLoading}
             {...register('email')}
           />
 
@@ -98,7 +76,6 @@ export default function Login() {
             error={errors.password?.message}
             icon={Lock}
             placeholder="Enter your password"
-            disabled={isLoading}
             {...register('password')}
           />
         </div>
@@ -125,17 +102,10 @@ export default function Login() {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-              Signing in...
-            </div>
-          ) : (
-            'Sign in'
-          )}
+          {isSubmitting ? 'Signing in...' : 'Sign in'}
         </button>
 
         <div className="text-sm text-center">
